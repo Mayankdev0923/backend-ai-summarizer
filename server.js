@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import nodemailer from "nodemailer";
 import fetch from "node-fetch"; // Needed if Node <18
-import "dotenv/config"; // or: require("dotenv").config();
 
 const app = express();
 
