@@ -36,28 +36,26 @@ app.post("/api/summarize", async (req, res) => {
     );
 
     const data = await response.json();
+    console.log("🔎 Gemini raw response:", JSON.stringify(data, null, 2)); // <--- log
 
     if (!response.ok) {
       throw new Error(data.error?.message || "Gemini API failed");
     }
 
-    // safely extract summary
     let summary = "";
-    if (
-      data.candidates &&
-      data.candidates[0]?.content?.parts?.[0]?.text
-    ) {
+    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
       summary = data.candidates[0].content.parts[0].text;
     } else {
-      summary = "⚠️ Gemini returned an empty response";
+      summary = "⚠️ No summary generated";
     }
 
-    res.json({ summary });
+    res.json({ summary, raw: data }); // send raw too (for debugging in frontend)
   } catch (err) {
     console.error("Summarize error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // --- API: Share via Email ---
