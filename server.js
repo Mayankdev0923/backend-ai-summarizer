@@ -16,13 +16,13 @@ app.get("/", (req, res) => {
 
 // --- API: Summarize using Gemini ---
 app.post("/api/summarize", async (req, res) => {
-  const { transcript, prompt } = req.body;
-
-  if (!process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ error: "Missing GEMINI_API_KEY in environment" });
-  }
-
   try {
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: "Missing text input" });
+    }
+
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" +
         process.env.GEMINI_API_KEY,
@@ -30,20 +30,35 @@ app.post("/api/summarize", async (req, res) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `${prompt}\n\nTranscript:\n${transcript}` }] }]
-        })
+          contents: [{ parts: [{ text: `Summarize this: ${text}` }] }],
+        }),
       }
     );
 
     const data = await response.json();
-    const summary = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No summary generated.";
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Gemini API failed");
+    }
+
+    // safely extract summary
+    let summary = "";
+    if (
+      data.candidates &&
+      data.candidates[0]?.content?.parts?.[0]?.text
+    ) {
+      summary = data.candidates[0].content.parts[0].text;
+    } else {
+      summary = "⚠️ Gemini returned an empty response";
+    }
 
     res.json({ summary });
   } catch (err) {
     console.error("Summarize error:", err);
-    res.status(500).json({ error: "Failed to summarize." });
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 // --- API: Share via Email ---
 app.post("/api/share", async (req, res) => {
